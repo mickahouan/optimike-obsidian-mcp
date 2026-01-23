@@ -1,0 +1,191 @@
+# Optimike Obsidian MCP
+
+Version anglaise : [README.md](README.md)
+
+Serveur MCP (Model Context Protocol) pour Obsidian avec recherche sémantique basée sur Smart Connections.
+
+## TL;DR
+
+```bash
+npm install
+npm run build
+node dist/index.js --stdio
+```
+
+## Pourquoi
+
+- Connecter Obsidian à des agents MCP (Codex, IDE, etc.)
+- Exposer les outils REST Obsidian (lecture/écriture, frontmatter, tags, recherche)
+- Offrir une recherche vectorielle locale via Smart Connections (`.smart-env`)
+
+## Points forts
+
+- Outils MCP complets (notes, frontmatter, tags, recherche globale, etc.)
+- Recherche sémantique locale `smart_semantic_search`
+- Embedder-agnostic : aligne automatiquement la requête sur le modèle du vault
+- Support Ollama / Xenova / OpenAI (override par env vars)
+
+## Architecture (vue d'ensemble)
+
+1) **Obsidian** + plugins (Local REST API, Bases Bridge, Smart Connections)  
+2) **Optimike Obsidian MCP** (ce serveur)  
+3) **Agents MCP** (Codex, IDE, etc.)
+
+Le serveur agit comme un **pont** entre tes agents et Obsidian, et ajoute une couche “Base” pour les fichiers `.base`.
+
+## Bases Bridge (REST) — pourquoi et comment
+
+Obsidian ne fournit pas d’API native pour interroger les Bases (`.base`).  
+Le plugin **Bases Bridge (REST)** comble ce manque en ajoutant des endpoints REST dédiés.
+
+### Endpoints exposés par Bases Bridge
+
+Préfixe officiel (recommandé) :
+
+- `GET /extensions/obsidian-bases-bridge/bases`  
+  Liste toutes les bases disponibles.
+- `GET /extensions/obsidian-bases-bridge/bases/:id/schema`  
+  Retourne le schéma (propriétés, formules, vues).
+- `POST /extensions/obsidian-bases-bridge/bases/:id/query`  
+  Interroge une base (filtres, tri, pagination, evaluate).
+- `POST /extensions/obsidian-bases-bridge/bases/:id/upsert`  
+  Met à jour le frontmatter de notes en masse.
+- `POST /extensions/obsidian-bases-bridge/bases`  
+  Crée/valide une base `.base`.
+- `GET /extensions/obsidian-bases-bridge/bases/:id/config`  
+  Lit le YAML d’une base.
+- `PUT /extensions/obsidian-bases-bridge/bases/:id/config`  
+  Met à jour le YAML d’une base.
+
+Alias legacy (compat MCP) :
+
+- `GET /bases`
+- `GET /bases/:id/schema`
+- `POST /bases/:id/query`
+- `POST /bases/:id/upsert`
+- `POST /bases`
+- `GET /bases/:id/config`
+- `PUT /bases/:id/config`
+
+### Engine / Evaluate
+
+Quand `evaluate: true`, le bridge renvoie :
+- `source: "engine"` : cache auto + évaluation des formules (sans vue Bridge)
+- `source: "fallback"` : calcul partiel sur disque si l’engine est OFF
+
+## Outils MCP liés aux Bases
+
+Le serveur expose des tools MCP “Base” (via Obsidian MCP) :
+
+- `bases_list` : liste toutes les bases
+- `bases_get_schema` : récupère le schéma d’une base
+- `bases_query` : requête paginée avec filtres/tri
+- `bases_upsert_rows` : mise à jour de frontmatter en masse
+- `bases_get_config` / `bases_upsert_config` : lire/écrire le YAML
+- `bases_create` : créer/valider une base `.base`
+
+## Configuration minimale (Codex)
+
+Dans `~/.codex/config.toml` :
+
+```toml
+[mcp_servers.optimike-obsidian-mcp]
+command = "node"
+args = ["/ABSOLUTE/PATH/optimike-obsidian-mcp/dist/index.js", "--stdio"]
+
+tool_timeout_sec = 900
+
+[mcp_servers.optimike-obsidian-mcp.env]
+# Smart Connections
+SMART_ENV_DIR = "/mnt/f/OBSIDIAN/ÉLYSIA/.smart-env"
+ENABLE_QUERY_EMBEDDING = "true"
+
+# Recommandé : auto (ne rien setter)
+# QUERY_EMBEDDER = "auto"
+
+# Obsidian REST (si plugin Local REST API actif)
+OBSIDIAN_BASE_URL = "http://localhost:27123"
+OBSIDIAN_API_KEY  = "<token>"
+```
+
+## Compagnons Obsidian (recommandés)
+
+Plugins à activer pour que tout fonctionne :
+- **Local REST API** : API Obsidian requise par le MCP.
+- **MCP Tools** (Jack Steam) : expose les outils MCP dans Obsidian.
+- **Bases Bridge (REST)** : support `.base` via REST.
+- **Smart Connections** : index vectoriel et `.smart-env` pour la recherche sémantique.
+
+## Recherche sémantique (Smart Connections)
+
+Tool : `smart_semantic_search` (alias : `smart_search`, `smart-search`).
+
+Exemple :
+
+```json
+{ "query": "publication X threads", "top_k": 10, "with_snippets": false }
+```
+
+Le serveur :
+- lit `.smart-env/multi/*.ajson`
+- choisit la dimension dominante
+- encode la requête avec le même modèle que le vault
+
+## Providers (override optionnel)
+
+**Ollama (local)**
+
+```bash
+export QUERY_EMBEDDER=ollama
+export QUERY_EMBEDDER_MODEL=snowflake-arctic-embed2
+export OLLAMA_BASE_URL=http://127.0.0.1:11434
+```
+
+**Xenova (Transformers)**
+
+```bash
+export QUERY_EMBEDDER=xenova
+export QUERY_EMBEDDER_MODEL_HINT=bge-384   # ou e5 / snowflake / etc.
+```
+
+**OpenAI (cloud)**
+
+```bash
+export QUERY_EMBEDDER=openai
+export QUERY_EMBEDDER_MODEL=text-embedding-3-small
+export OPENAI_API_KEY=...
+# export OPENAI_EMBEDDING_DIMENSIONS=1024
+```
+
+## MCP partage : portabilité
+
+Pour un MCP partagé, ne pas figer un `OLLAMA_BASE_URL` global dans le vault.
+Laisser le mode auto et laisser chaque utilisateur overrider par env vars.
+
+## WSL + Ollama Windows (recommandé)
+
+Si Obsidian tourne sur Windows et Ollama aussi :
+
+1) définir `OLLAMA_HOST=0.0.0.0:11434` sur Windows
+2) redémarrer Ollama
+3) tester depuis WSL :
+
+```bash
+GW=$(ip route | awk '/default/ {print $3; exit}')
+curl http://$GW:11434/api/tags
+```
+
+Puis, si besoin :
+
+```bash
+export OLLAMA_BASE_URL=http://$GW:11434
+```
+
+## Credits
+
+- Créé par **Optimike** (Mickaël Ahouansou)
+- Base technique inspirée par `cyanheads/obsidian-mcp-server`
+
+## License
+
+Voir `LICENSE`.
