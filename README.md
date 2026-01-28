@@ -151,9 +151,18 @@ export OBSIDIAN_BASE_URL=http://$GW:27124
 
 Plugins required for full functionality:
 - **Local REST API**: Obsidian API used by MCP.
-- **MCP Tools** (Jack Steam): exposes MCP tools in Obsidian.
 - **Bases Bridge (REST)**: `.base` support via REST.
 - **Smart Connections**: vector index and `.smart-env` for semantic search.
+
+### Bases Bridge (REST) — bundled in this repo
+
+This repo includes the plugin under `plugins/obsidian-bases-bridge`.
+
+Local install (Obsidian):
+
+1) Copy `plugins/obsidian-bases-bridge` to your vault:  
+   `<vault>/.obsidian/plugins/obsidian-bases-bridge`
+2) In Obsidian: Settings → Community plugins → enable **Obsidian Bases Bridge**
 
 ## Semantic search (Smart Connections)
 
