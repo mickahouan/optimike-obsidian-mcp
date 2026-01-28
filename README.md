@@ -108,6 +108,45 @@ OBSIDIAN_BASE_URL = "http://localhost:27123"
 OBSIDIAN_API_KEY  = "<token>"
 ```
 
+## Obsidian Local REST API setup
+
+In Obsidian, install and enable **Local REST API**.
+
+1) Open the plugin settings  
+2) Enable the HTTP server  
+3) Copy the API key  
+4) Set the base URL + key in your MCP env
+
+Example:
+
+```
+OBSIDIAN_BASE_URL=http://127.0.0.1:27123
+OBSIDIAN_API_KEY=<your_api_key>
+```
+
+Note: in WSL2, `127.0.0.1` points to WSL, not Windows.  
+If Obsidian runs on Windows, use the host IP (see WSL section below).
+
+## WSL2 + Obsidian on Windows (Local REST API)
+
+If Obsidian runs on Windows and Codex runs in WSL2:
+
+- `127.0.0.1` from WSL points to WSL, not Windows.
+- Use the Windows host IP (WSL gateway) for `OBSIDIAN_BASE_URL`.
+
+Example (WSL):
+
+```bash
+GW=$(ip route | awk '/default/ {print $3; exit}')
+export OBSIDIAN_BASE_URL=http://$GW:27123
+```
+
+If you use a Windows portproxy (e.g. `27124` → `27123`), then set:
+
+```bash
+export OBSIDIAN_BASE_URL=http://$GW:27124
+```
+
 ## Obsidian companions (recommended)
 
 Plugins required for full functionality:
