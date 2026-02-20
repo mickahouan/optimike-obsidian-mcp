@@ -91,13 +91,13 @@ Dans `~/.codex/config.toml` :
 ```toml
 [mcp_servers.optimike-obsidian-mcp]
 command = "node"
-args = ["/ABSOLUTE/PATH/optimike-obsidian-mcp/dist/index.js", "--stdio"]
+args = ["/chemin/vers/optimike-obsidian-mcp/dist/index.js", "--stdio"]
 
 tool_timeout_sec = 900
 
 [mcp_servers.optimike-obsidian-mcp.env]
 # Smart Connections
-SMART_ENV_DIR = "/mnt/f/OBSIDIAN/ÉLYSIA/.smart-env"
+SMART_ENV_DIR = "/chemin/vers/<vault>/.smart-env"
 ENABLE_QUERY_EMBEDDING = "true"
 
 # Recommandé : auto (ne rien setter)
@@ -106,7 +106,17 @@ ENABLE_QUERY_EMBEDDING = "true"
 # Obsidian REST (si plugin Local REST API actif)
 OBSIDIAN_BASE_URL = "http://localhost:27123"
 OBSIDIAN_API_KEY  = "<token>"
+
+# Comportement au démarrage (optionnel, recommandé pour un boot plus rapide sous WSL)
+# OBSIDIAN_STARTUP_BLOCKING=false démarre le MCP immédiatement et lance le health check en arrière-plan.
+OBSIDIAN_STARTUP_MAX_RETRIES = "2"
+OBSIDIAN_STARTUP_RETRY_DELAY_MS = "1200"
+OBSIDIAN_STARTUP_BLOCKING = "false"
 ```
+
+Notes :
+- Garde cette config en local dans `~/.codex/config.toml` (ne pas commit des chemins machine personnels).
+- Dans la doc, utilise des chemins logiques (`/chemin/vers/...`) et garde les chemins réels uniquement en local.
 
 ## Compagnons Obsidian (recommandés)
 
